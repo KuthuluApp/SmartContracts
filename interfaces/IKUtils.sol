@@ -14,6 +14,9 @@ interface IKUtils {
     // Is a valid string
     function isValidString(string memory str) external pure returns (bool);
 
+    // Is a safe string
+    function isSafeString(string memory str) external pure returns (bool);
+
     // Is a valid string for group names
     function isValidGroupString(string memory str) external pure returns (bool);
 

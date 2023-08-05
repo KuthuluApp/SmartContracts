@@ -73,7 +73,6 @@ contract Likes is Initializable, PausableUpgradeable, OwnableUpgradeable {
     // Map the user address to a list of message IDs that are liked by them
     // Address is a string for address "buckets" 0x123, 0x123-1, 0x123-2 ...
     mapping (string => uint256[]) public likesMap;
-    //TODO : integrate this
     mapping (string => mapping (uint256 => bool)) public likesMapMap;
 
 

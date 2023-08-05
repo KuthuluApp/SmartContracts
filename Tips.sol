@@ -58,7 +58,6 @@ import "./interfaces/IGroups.sol";
 import "./interfaces/IMessageData.sol";
 import "./interfaces/IUserProfiles.sol";
 
-
 contract Tips is Initializable, PausableUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
 
     // Admins
@@ -189,7 +188,7 @@ contract Tips is Initializable, PausableUpgradeable, OwnableUpgradeable, Reentra
     }
 
     function addTaggedTips(address[] memory taggedAccounts, uint256 erc20Tips, address tipContract, address posterAddress) public onlyAdmins whenNotPaused payable {
-        
+
         // Get the amount of accounts that were tagged
         uint256 accountLength = taggedAccounts.length;
 
@@ -236,7 +235,7 @@ contract Tips is Initializable, PausableUpgradeable, OwnableUpgradeable, Reentra
             uint256 tipPerTag = msg.value / accountLength;
 
             // If we have an uneven number, KUTHULU takes the remainder as a tip =)
-            uint256 remainder = erc20Tips - (tipPerTag * (accountLength - 1));
+            uint256 remainder = msg.value - (tipPerTag * (accountLength - 1));
 
             if (remainder > 0){
                 // Send remainder to vault

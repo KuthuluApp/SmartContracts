@@ -403,9 +403,9 @@ contract Groups is Initializable, PausableUpgradeable, OwnableUpgradeable, Reent
     */
     function updateGroupNFTColors(uint256 groupID, string calldata color1, string calldata color2, string calldata color3) public onlyGroupOwners(groupID) whenNotPaused {
         // Ensure valid hex length
-        require(bytes(color1).length <= 6, "Invalid Hex color");
-        require(bytes(color2).length <= 6, "Invalid Hex color");
-        require(bytes(color3).length <= 6, "Invalid Hex color");
+        require(bytes(color1).length <= 6 && KUtils.isValidString(color1), "Invalid Hex color");
+        require(bytes(color2).length <= 6 && KUtils.isValidString(color1), "Invalid Hex color");
+        require(bytes(color3).length <= 6 && KUtils.isValidString(color1), "Invalid Hex color");
 
         groupDetails[groupID].colors[0] = color1;
         groupDetails[groupID].colors[1] = color2;
@@ -424,6 +424,9 @@ contract Groups is Initializable, PausableUpgradeable, OwnableUpgradeable, Reent
     function updateGroupNFTDetails(uint256 groupID, string calldata details) public onlyGroupOwners(groupID) whenNotPaused {
         // Make sure the details are within length limits
         require(bytes(details).length <= maxDetailsLength, "Details too long");
+
+        // Make sure the details are safe
+        require(KUtils.isSafeString(details), "Unsafe characters");
 
         groupDetails[groupID].details = details;
 

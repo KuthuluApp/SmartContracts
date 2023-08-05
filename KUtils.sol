@@ -185,6 +185,23 @@ contract KUtils is Initializable, PausableUpgradeable, OwnableUpgradeable {
         return true;
     }
 
+    function isSafeString(string memory str) public pure returns (bool) {
+        bytes memory b = bytes(str);
+
+        for(uint i; i<b.length; i++){
+            bytes1 char = b[i];
+
+            if(
+            // As to not to allow scripts
+                (char == 0x3C) || //<
+                (char == 0x3E) //>
+            )
+                return false;
+        }
+
+        return true;
+    }
+
 
     function toString(uint256 value) public pure returns (string memory) {
         // Inspired by OraclizeAPI's implementation - MIT licence

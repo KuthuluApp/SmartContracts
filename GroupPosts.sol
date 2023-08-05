@@ -52,6 +52,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./interfaces/IKUtils.sol";
+import "./interfaces/IDOOM.sol";
 
 contract GroupPosts is Initializable, PausableUpgradeable, OwnableUpgradeable {
 
@@ -68,6 +69,9 @@ contract GroupPosts is Initializable, PausableUpgradeable, OwnableUpgradeable {
     // Address is a string for group ID "buckets" 123..., 132...-1, 123...-2 ...
     mapping (string => uint256[]) public groupPostsMap;
     mapping (string => mapping (uint256 => bool)) public groupPostsMapMap;
+
+    // Need to keep a mapping of group post index locations per bucket (bucket => map(msgID => index))
+    mapping (string => mapping (uint256 => uint256)) public groupPostsMsgIndex;
     
     // Link the KUtils
     IKUtils public KUtils;
@@ -159,6 +163,9 @@ contract GroupPosts is Initializable, PausableUpgradeable, OwnableUpgradeable {
 
             // Update the Posts Map Map for quick removal
             groupPostsMapMap[postBucketKey][msgID] = true;
+
+            // Update the Posts index mapping
+            groupPostsMsgIndex[postBucketKey][msgID] = groupPostsMap[postBucketKey].length - 1;
         }
 
         // Log it
@@ -201,7 +208,7 @@ contract GroupPosts is Initializable, PausableUpgradeable, OwnableUpgradeable {
     /**
     * @dev Returns a list of messages are posted in a group
     * @param groupID : group ID to get a list of posts for
-    * @param startFrom : the number to start getting records from
+    * @param startFrom : the message ID to start from
     * @return uint256[] : an array of message IDs
     */
     function getMsgIDsByGroupID(uint256 groupID, uint256 startFrom) public view whenNotPaused returns(uint256[] memory) {
@@ -215,33 +222,39 @@ contract GroupPosts is Initializable, PausableUpgradeable, OwnableUpgradeable {
         // Get the latest bucket
         uint256 bucketKeyID = getBucketKey(groupIDStr, false);
 
-        // Get the bucket key from where we will pull from
+        // Get the most recent bucket key with posts
         string memory bucketKey = KUtils.append(groupIDStr,'-',KUtils.toString(bucketKeyID),'','');
 
-        // If they pass a 0, then return newest set
-        if (startFrom == 0){
-            startFrom = ((groupPostsMap[bucketKey].length) + (bucketKeyID * maxItemsPerBucket));
-            if (startFrom != 0){
-                startFrom -= 1;
-            } else {
-                // It's empty, so end
-                uint256[] memory empty = new uint256[](0);
-                return empty;
-            }
+        // If there are no posts, just stop
+        if (groupPostsMap[bucketKey].length == 0){
+            return new uint256[](0);
         }
 
-        // Figure out where the list should be pulled from
-        for (uint i=0; i <= bucketKeyID; i++) {
+        // Initialize the index of the post to start with
+        uint256 indexToStartAt = groupPostsMap[bucketKey].length - 1;
 
-            // if the starting point is greater than the beginning item and less than the max in this bucket, this is the correct bucket
-            if (startFrom >= (i * maxItemsPerBucket) && startFrom <= ((groupPostsMap[bucketKey].length) + (i * maxItemsPerBucket))) {
-                bucketKeyID = i;
+        // If we're starting from the top, we can skip this lookup
+        if (startFrom != 0){
 
-                // Adjust the startFrom to work with this bucket
-                if (i != 0){
-                    startFrom = startFrom - (i * maxItemsPerBucket);
+            // Figure out which bucket to start from. Start from the latest and work backwards
+            for (uint i=(bucketKeyID + 1); i > 0; i--) {
+
+                // If the message ID is greater than the one at the first position, we're in the right bucket
+                if (startFrom >= groupPostsMap[bucketKey][0]) {
+
+                    // Get the index of this post
+                    indexToStartAt = groupPostsMsgIndex[bucketKey][startFrom];
+
+                    // Break out of the loop
+                    i = 1;
+                } else {
+
+                    // record the bucket key ID (-2 since we pad with +1 to start since solidity hates neg numbers >:)
+                    bucketKeyID = i - 2;
+
+                    // Check the next bucket down
+                    bucketKey = KUtils.append(groupIDStr,'-',KUtils.toString(bucketKeyID),'','');
                 }
-
             }
         }
 
@@ -249,15 +262,15 @@ contract GroupPosts is Initializable, PausableUpgradeable, OwnableUpgradeable {
         string memory remainderBucketKey = bucketKey;
 
         // Check if there's less than max records in this bucket and only go to the end
-        if (startFrom < _maxRecords){
-            _maxRecords = startFrom + 1;
+        if (indexToStartAt < _maxRecords){
+            _maxRecords = indexToStartAt + 1;
         }
 
         // Initialize the count as empty;
         uint256 postCount = 0;
 
         // Loop through all items in the first bucket up to max return amount
-        for (uint i=(startFrom + 1); i > (startFrom + 1 - _maxRecords); i--) {
+        for (uint i=(indexToStartAt + 1); i > (indexToStartAt + 1 - _maxRecords); i--) {
 
             // Check that the item is still enabled
             if (groupPostsMapMap[bucketKey][groupPostsMap[bucketKey][i - 1]]){
@@ -291,14 +304,15 @@ contract GroupPosts is Initializable, PausableUpgradeable, OwnableUpgradeable {
             }
         }
 
-        // Start the array
+
+        // Start the array (this is why we have to loop previously, just to set the dynamic array length :/ )
         uint256[] memory msgIDs = new uint256[](postCount);
 
         // Counter to keep track of iterations since we're listing in reverse
         uint counter = 0;
 
         // Loop through all items in the first bucket up to max return amount
-        for (uint i=(startFrom + 1); i > (startFrom + 1 - _maxRecords); i--) {
+        for (uint i=(indexToStartAt + 1); i > (indexToStartAt + 1 - _maxRecords); i--) {
             if(groupPostsMapMap[bucketKey][groupPostsMap[bucketKey][i - 1]]){
                 msgIDs[counter] = groupPostsMap[bucketKey][i - 1];
                 counter += 1;

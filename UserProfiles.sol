@@ -318,6 +318,9 @@ contract UserProfiles is Initializable, PausableUpgradeable, OwnableUpgradeable,
         // Only approved wallets can force an NFT avatar
         require(approved[msg.sender], "Only approved wallets can call this function.");
 
+        // Make sure the URI is legit
+        require(KUtils.isValidURI(imageURI), "Invalid URI");
+
         // Save image URI
         usrProfileMap[profileAddress].userAvatar.avatar = imageURI;
 
@@ -422,6 +425,9 @@ contract UserProfiles is Initializable, PausableUpgradeable, OwnableUpgradeable,
     function updateProfile(string calldata location, string calldata avatar, string calldata _uri, string calldata _bio, uint256 groupID) public whenNotPaused {
 
         address profileAddress = msg.sender;
+
+        // Make sure the location, avatar, uri, abd bio are valid strings
+        require(KUtils.isSafeString(location) && KUtils.isValidURI(avatar) && KUtils.isValidURI(_uri) && KUtils.isSafeString(_bio), "Unsafe characters");
 
         // If this is a group validate that they are the owner
         if (groupID > 0){

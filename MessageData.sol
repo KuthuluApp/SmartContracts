@@ -238,6 +238,9 @@ contract MessageData is Initializable, PausableUpgradeable, OwnableUpgradeable {
 
     function saveMsg(MsgData memory newMsg) public onlyAdmins {
 
+        // Make sure the message and uri are valid strings
+        require(KUtils.isSafeString(newMsg.message) && KUtils.isValidURI(newMsg.uri), "Unsafe characters");
+
         // Check if this is a repost, and if so, update that messages updateStats
         if (newMsg.isRepostOf > 0){
             addStat(3, newMsg.isRepostOf, 1, 0);

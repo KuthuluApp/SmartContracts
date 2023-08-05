@@ -79,8 +79,6 @@ contract Blocking is Initializable, PausableUpgradeable, OwnableUpgradeable {
         address[] blacklistDetails;
         bool usingWhitelist;
         ContractProof contractProof;
-
-        //TODO : add contract blocking / exclusivity
     }
 
     // Map the User Address => User Data
