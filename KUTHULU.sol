@@ -356,6 +356,9 @@ contract KUTHULU is Initializable, PausableUpgradeable, OwnableUpgradeable {
 
         // Update Blocking
         Blocking = IBlocking(contracts[9]);
+
+        // Update KUtils
+        KUtils = IKUtils(contracts[10]);
     }
 
 

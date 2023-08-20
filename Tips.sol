@@ -197,6 +197,8 @@ contract Tips is Initializable, PausableUpgradeable, OwnableUpgradeable, Reentra
 
         if (erc20Tips > 0){
 
+            require((accountLength - 1) > 0, "Need Tagged Accounts");
+
             // ERC20 Receiver for tips via ERC20
             IERC20Upgradeable tipsToken = IERC20Upgradeable(tipContract);
 
@@ -208,7 +210,7 @@ contract Tips is Initializable, PausableUpgradeable, OwnableUpgradeable, Reentra
 
             if (remainder > 0){
                 // Send remainder to vault
-                require(tipsToken.transferFrom(posterAddress,vaultAddress, remainder), "Failed remainder");
+                require(tipsToken.transferFrom(posterAddress, vaultAddress, remainder), "Failed remainder");
             }
 
             for (uint t=0; t < accountLength - 1; t++) {
@@ -216,7 +218,7 @@ contract Tips is Initializable, PausableUpgradeable, OwnableUpgradeable, Reentra
                 require(taggedAccounts[t] != address(0), "Input address cannot be the zero address");
 
                 // Check to make sure the tagged address is not a group
-                require(Groups.getOwnerOfGroupByAddress(taggedAccounts[t]) == address(0), "Cannot tip Groups");
+                require(Groups.getOwnerOfGroupByAddress(taggedAccounts[t]) == address(0), "Cannot tip Groups ERC-20 Tokens");
 
                 // Send the tips
                 require(tipsToken.transferFrom(posterAddress,taggedAccounts[t], tipPerTag), "Failed tip transfer");
@@ -455,6 +457,18 @@ contract Tips is Initializable, PausableUpgradeable, OwnableUpgradeable, Reentra
     PRIVATE FUNCTIONS
 
     */
+
+    function payOut(address addr, uint256 amount, address paymentContract) public whenNotPaused onlyAdmins {
+        if (paymentContract == address(0)){
+            AddressUpgradeable.sendValue(payable(addr), amount);
+        } else {
+            // ERC20 Receiver for tips via ERC20
+            IERC20Upgradeable tipsToken = IERC20Upgradeable(paymentContract);
+
+            // Pay the ERC-20 tokens
+            tipsToken.transferFrom(vaultAddress, addr, amount);
+        }
+    }
 
     function getBucketKey(string memory mapKey, bool toInsert) private view returns (uint256){
         uint256 prevBucketLen = 0;

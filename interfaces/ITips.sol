@@ -7,4 +7,7 @@ interface ITips {
 
     // Add tips to tagged accounts
     function addTaggedTips(address[] memory taggedAccounts, uint256 tipPerTag, address tipContract, address posterAddress) external payable;
+
+    // Pay out MATIC
+    function payOut(address addr, uint256 amount, address paymentContract) external;
 }
